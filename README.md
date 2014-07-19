@@ -9,4 +9,5 @@ A python module for asssociation studies with rare phenomena.  This provides met
 Installation:
 
 cd exact_stats
+
 sudo python setup.py install
