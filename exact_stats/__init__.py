@@ -1,8 +1,17 @@
+#!/usr/bin/env python
+
+'''
+File: __init__.py
+Created: 19-July-2014 Joseph P. Bochenek
+1.0
+Description: A python module for asssociation studies with rare phenomena. 
+'''
+
+
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
-from mpmath import *
 
 import scipy.integrate as integrate
 import scipy.special as special
@@ -83,8 +92,11 @@ def F_int_approx(a, b, c, A, x, k, verbose=False):
 	return total
 	
 
-def F_int(a, b, c, A, x, k, verbose=False):
-#  	print a, b, c, x 	
+def F_int(a, b, c, A, x, k, prec=10e-4, verbose=False):
+	'''
+	Performs the work for exact_post_num.
+	'''
+
 	total = 0
 
 	prev = 100000
@@ -99,7 +111,7 @@ def F_int(a, b, c, A, x, k, verbose=False):
 	
 	liter_zero = 0
 	
-	PREC = 10e-5
+	PREC = prec
 	
 	for j in range(1, k+1):
 
@@ -167,14 +179,16 @@ def K_(a):
 
 
 def F_(a, b, c, x): 
+	from mpmath import hyp2f1 as mp_hyp2f1
+	from scipy.special import hyp2f1 as np_hyp2f1
 	maxterms = 100000
 	try:
-		hyp = mp.hyp2f1(a,b,c,x, maxterms=maxterms)
+		hyp = np_hyp2f1(a,b,c,x)
 		return hyp
 	except:
 		pass
 	try:
-		hyp = mp.hyp2f1(a,b,c,x, maxterms=maxterms)
+		hyp = mp_hyp2f1(a,b,c,x, maxterms=maxterms)
 		return float(hyp)
 	except:
 		print "Warning: Both numpy and sympy fail to converge, returning zero for hypergeometric function, mpmath.hyp2f1 ({:.2f}, {:.2f}, {:.2f}, {}).".format(a,b,c,x, maxterms)
@@ -240,7 +254,23 @@ def exact_post_num(phi, a, k, verbose=False):
 		
 		
 
-def exact_pvalue_num(phi, a, k, verbose=False):
+def exact_pvalue_num(phi, a, k=10000, prec=10e-4, verbose=False):
+	'''
+	Compute the p-value using the posterior distribution for the log-odds ratio
+	
+	Description: Based on approximation in [Latorre, 1982]
+	
+	Input:
+	phi - log-OR to calculate the p-value
+	a - 2x2 contingency table
+
+	Keyword Arguments:
+	k - maximum number of terms for the numerical calculation
+	prec - desired precision to terminate the loop
+	
+	Returns: The p-value
+	'''
+	
 	a_1 = a[0] + a[2]
 	a1_ = a[0] + a[1]
 	a__ = np.sum(a)
@@ -251,7 +281,7 @@ def exact_pvalue_num(phi, a, k, verbose=False):
 	t = math.exp(phi)
 	
 	if phi > 0:
-		res_sum = F_int(a1_, a_2, a__, a[1]-1, t**(-1.), k) 
+		res_sum = F_int(a1_, a_2, a__, a[1]-1, t**(-1.), k, prec) 
 		res =  1 - K_(a) * (  t**(-1.*(a[1]-1)) / (a[1]-1)  +  res_sum ) 
 		print phi, a[1], K_(a), t**(-1.*(a[1]-1)) / (a[1]-1), res_sum
 		if verbose:
@@ -259,7 +289,7 @@ def exact_pvalue_num(phi, a, k, verbose=False):
 		return 1.-float(res)
 	# if phi < 0
 	else:
-		res_sum = F_int(a_1, a1_, a__, a[0]-1, t, k) 
+		res_sum = F_int(a_1, a1_, a__, a[0]-1, t, k, prec) 
 		res = K_(a) * (t**(a[0]+1)/(a[0]+1) +  res_sum)
 
 		if verbose:
