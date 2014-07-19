@@ -7,7 +7,7 @@ Created: 19-July-2014 Joseph P. Bochenek
 Description: A python module for asssociation studies with rare phenomena. 
 '''
 
-
+from nose.tools import *
 import exact_stats
 
 import math
