@@ -11,11 +11,16 @@ Description: A python module for asssociation studies with rare phenomena.
 import math
 import numpy as np
 import scipy.stats as stats
-
 import scipy.integrate as integrate
 import scipy.special as special
 from prettytable import PrettyTable
 import mpmath
+from mpmath import hyp2f1 as mp_hyp2f1
+from scipy.special import hyp2f1 as np_hyp2f1
+import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
+import collections
+
 mpmath.mp.dps = 100
 
 def b_l(l, a):
@@ -403,8 +408,6 @@ def F_(a, b, c, x, verbose=False):
 		print '\nComputing F_():'
 		print 'F_({}, {}, {}, {}, verbose={})'.format(a, b, c, x, verbose)
 
-	from mpmath import hyp2f1 as mp_hyp2f1
-	from scipy.special import hyp2f1 as np_hyp2f1
 	maxterms = 20000
 
 	hyp = 0.
@@ -984,8 +987,6 @@ def fisher_exact(a):
 	return fisher_res
 
 def test_plot_with_toys(a, filename='logOR_test'):
-	import matplotlib.pyplot as plt
-	import matplotlib.mlab as mlab
 
 	N = normalize_table(a)
 	
@@ -1053,7 +1054,6 @@ def test_plot_with_toys(a, filename='logOR_test'):
 	C = [tot*x[2] for x in S]
 	D = [tot*x[1] for x in S]
 
-	import collections
 	dict_ = collections.Counter()
 
 	x = []
@@ -1086,7 +1086,6 @@ def test_plot_with_toys(a, filename='logOR_test'):
 	C = [tot*x[2] for x in S]
 	D = [tot*x[1] for x in S]
 
-	import collections
 	dict_ = collections.Counter()
 
 	y = []
