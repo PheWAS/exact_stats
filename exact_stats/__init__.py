@@ -20,6 +20,7 @@ from scipy.special import hyp2f1 as np_hyp2f1
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import collections
+import pandas as pd
 
 mpmath.mp.dps = 100
 
@@ -733,6 +734,58 @@ def positive_OR(a, verbose=True):
 
 	return a_flip
 
+
+
+def make_cont_table(df_snp, df_pheno, verbose=False):
+
+	pheno = df_pheno.columns.tolist()[1]
+
+	if verbose:
+		print "Phenotype: {}\tprev.: {:.3e}".format(pheno, compute_prevalance(df_pheno))
+
+	try:
+		maf = df_snp.maf
+	except:
+		maf_ = [ len(df_snp[df_snp['SNP']==x].SNP.tolist()) for x in range(4)  ]
+		maf = (2*maf_[2]+maf_[1])/(2.*float(maf_[0]+maf_[1]+maf_[2]))
+		
+	try:
+		snp_name = df_snp.snp_name
+	except:
+		snp_name = 'unnamed'
+
+	if verbose:		
+		print "SNP: {}\t MAF:{:.3e}".format(snp_name, maf)
+
+
+	df_logit = pd.merge(df_snp, df_pheno, on="FID")			
+	cross = pd.crosstab(df_logit[pheno], df_logit['SNP'], rownames=[pheno])
+	
+	if verbose:
+		print cross
+
+	try:
+		cross = cross.drop(3, 1)
+	except:
+		if verbose:
+			print 'no error column'
+		
+	# Discard exclusions
+	z = [cross[x].tolist()[1:] for x in cross]
+	a = [ [x[0] for x in z], [x[1] for x in z] ]
+
+	if len(a[0])==3:
+		x = PrettyTable(["Allele:", "X=0", "X=1", "X=2"])
+		x.add_row(["Control", a[0][0], a[0][1], a[0][2]] )
+		x.add_row(["Cases", a[1][0], a[1][1], a[1][2]] )
+	if len(a[0])==2:
+		x = PrettyTable(["Allele:", "X=0", "X=1"])
+		x.add_row(["Control", a[0][0], a[0][1] ] )
+		x.add_row(["Cases", a[1][0], a[1][1] ] )
+	
+	return a
+
+
 def normalize_table(a, verbose=False):
 	A = a
 	a = np.array(A)
@@ -985,6 +1038,41 @@ def fisher_exact(a):
 # 	odds_ratio = (float(a[1][1])/float(a[1][0]))/(float(a[0][1])/float(a[0][0]))
 	fisher_res = stats.fisher_exact( N )
 	return fisher_res
+
+
+def fisher_conditional(df_pheno, df_snp, df_control_snp):
+	
+	pheno = df_pheno.columns.tolist()[1]
+
+	overlap_matrix = np.array([[0,0,0],[0,0,0]])
+
+	for i in [1, 2]:
+		for j in [0, 1, 2]:
+			common_and_rare_exp = len(   set(df_control_snp[df_control_snp['SNP']==j].FID.tolist())   & \
+					 set(df_snp[df_snp['SNP']==j].FID.tolist())  & \
+					 set(df_pheno[df_pheno[pheno]==i].FID.tolist()) \
+				 )
+			overlap_matrix[i-1][j] = common_and_rare_exp
+	
+	
+	a = make_cont_table(df_snp, df_pheno)
+	a_cont = make_cont_table(df_control_snp, df_pheno)
+	
+	om = overlap_matrix
+
+	#move those individuals with the disease and the rare snp to the control  
+	remainder_matrix = [[ (a[0][0]), (a[0][1] + om[1][1]), (a[0][2] + om[1][2]) ], [ (a[1][0]), \
+						(a[1][1] - om[1][1]), (a[1][2] - om[1][2]) ] ]	
+	
+	if a==False:
+		odds_ratio, p_value = -1, -1
+	else:
+		odds_ratio, p_value = fisher_exact(remainder_matrix)
+
+	return odds_ratio, p_value
+
+
+
 
 def test_plot_with_toys(a, filename='logOR_test'):
 
